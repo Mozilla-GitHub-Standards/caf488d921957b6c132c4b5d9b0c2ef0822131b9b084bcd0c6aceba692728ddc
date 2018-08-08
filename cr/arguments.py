@@ -1,6 +1,7 @@
 #!tusr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from pprint import pprint
 from datetime import datetime
 
 from cr.utils.dictionary import merge
@@ -52,59 +53,41 @@ CHANGE_IMPACT =[
 ]
 
 ARGS = {
-    ('-D', '--debug'): dict(
-        action='store_true',
-        help='default="%(default)s"; toggle debug mode on'
-    ),
-    ('-V', '--verbose'): dict(
-        action='store_true',
-        help='default="%(default)s"; toggle verbose mode on'
-    ),
     ('-S', '--planned-start-date',): dict(
         metavar='DATE',
-        required=True,
         type=date,
         help='enter planned start date (ISO 8601)'
     ),
     ('-E', '--planned-end-date',): dict(
         metavar='DATE',
-        required=True,
         type=date,
         help='enter planned end date (ISO 8601)'
     ),
-    ('-c', '--change-plan'): dict(
-        required=True,
+    ('-C', '--change-plan'): dict(
         metavar='PLAN',
         help='enter in text regarding the change plan if it is applicable'
     ),
-    ('-d', '--short-description'): dict(
-        required=True,
+    ('-D', '--short-description'): dict(
         metavar='DESC',
         help='enter in text regarding the short description if it is applicable'
     ),
     ('-B', '--business-impact'): dict(
-        required=True,
         metavar='IMPACT',
         default=BUSINESS_IMPACT[0],
         choices=BUSINESS_IMPACT,
         help='default="%(default)s"; choose the business impact from [%(choices)s]'
     ),
-    ('-C', '--change-impact'): dict(
-        required=True,
+    ('-I', '--change-impact'): dict(
         metavar='IMPACT',
         default=CHANGE_IMPACT[0],
         choices=CHANGE_IMPACT,
         help='default="%(default)s"; choose the impact from [%(choices)s]'
     ),
-    ('-U', '--user-impact'): dict(
+    ('-u', '--user-impact'): dict(
         metavar='IMPACT',
         default=USER_IMPACT[0],
         choices=USER_IMPACT,
         help='default="%(default)s"; choose the user-impact from [%(choices)s]'
-    ),
-    ('-P', '--planned-downtime'): dict(
-        action='store_true',
-        help='default="%(default)s"; toggle if previous change was successfully performed in downtime window'
     ),
     ('-s', '--security-risk-level'): dict(
         metavar='LEVEL',
@@ -142,6 +125,18 @@ ARGS = {
     ('-v', '--vendor-name'): dict(
         metavar='NAME',
         help='enter the vendor name, if applicable'
+    ),
+    ('-d', '--planned-downtime'): dict(
+        action='store_true',
+        help='default="%(default)s"; toggle if previous change was successfully performed in downtime window'
+    ),
+    ('-F', '--template-file',): dict(
+        metavar='FILE',
+        help='path to template file'
+    ),
+    ('-N', '--template-name',): dict(
+        metavar='NAME',
+        help='name of template stored on server'
     ),
 }
 

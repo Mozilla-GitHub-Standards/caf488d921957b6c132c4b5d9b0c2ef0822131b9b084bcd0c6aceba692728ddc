@@ -18,6 +18,7 @@ if os.path.islink(__file__):
 
 NAME, EXT = os.path.splitext(SCRIPT_NAME)
 
+from pprint import pprint
 from ruamel import yaml
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
@@ -32,32 +33,47 @@ def defaults_load(filepath, throw=False):
             raise er
         return {}
 
-def add_create(subparsers):
+class Required(object):
+    __instance = None
+    def __new__(cls):
+        if Required.__instance is None:
+            Required.__instance = object.__new__(cls)
+        return Required.__instance
+    def __repr__(self):
+        return 'Required'
+
+class MissingRequiredArgsError(Exception):
+    def __init__(self, required_args):
+        msg = 'missing required args error:\n' + '\n'.join(sorted(required_args))
+        super(MissingRequiredArgsError, self).__init__(msg)
+
+def add_create(subparsers, defaults):
     parser = subparsers.add_parser('create')
-    add_argument(parser, '-D', '--debug')
-    add_argument(parser, '-V', '--verbose')
 
-    required = parser.add_argument_group(title='questionnaire required')
-    add_argument(required, '-S', '--planned-start-date')
-    add_argument(required, '-E', '--planned-end-date')
-    add_argument(required, '-c', '--change-plan')
-    add_argument(required, '-d', '--short-description')
-    add_argument(required, '-B', '--business-impact')
-    add_argument(required, '-C', '--change-impact')
+    required_group = parser.add_argument_group(title='questionnaire required')
+    add_argument(required_group, '-S', '--planned-start-date', default=Required())
+    add_argument(required_group, '-E', '--planned-end-date', default=Required())
+    add_argument(required_group, '-C', '--change-plan', default=Required())
+    add_argument(required_group, '-D', '--short-description', default=Required())
+    add_argument(required_group, '-B', '--business-impact', default=Required())
+    add_argument(required_group, '-I', '--change-impact', default=Required())
 
-    optional = parser.add_argument_group(title='questionnaire optional')
-    add_argument(optional, '-U', '--user-impact')
-    add_argument(optional, '-s', '--security-risk-level')
-    add_argument(optional, '-f', '--change-frequency')
-    add_argument(optional, '-t', '--test-plan')
-    add_argument(optional, '-p', '--post-implementation-plan')
-    add_argument(optional, '-e', '--customer-end-user-plan')
-    add_argument(optional, '-r', '--rollback-procedure')
-    add_argument(optional, '-R', '--peer-review-date')
-    add_argument(optional, '-v', '--vendor-name')
-    add_argument(optional, '-P', '--planned-downtime')
+    optional_group = parser.add_argument_group(title='questionnaire optional')
+    add_argument(optional_group, '-u', '--user-impact')
+    add_argument(optional_group, '-s', '--security-risk-level')
+    add_argument(optional_group, '-f', '--change-frequency')
+    add_argument(optional_group, '-t', '--test-plan')
+    add_argument(optional_group, '-p', '--post-implementation-plan')
+    add_argument(optional_group, '-e', '--customer-end-user-plan')
+    add_argument(optional_group, '-r', '--rollback-procedure')
+    add_argument(optional_group, '-R', '--peer-review-date')
+    add_argument(optional_group, '-v', '--vendor-name')
+    add_argument(optional_group, '-d', '--planned-downtime')
 
-def add_show(subparsers):
+    parser.set_defaults(**defaults)
+    return parser
+
+def add_show(subparsers, defaults):
     parser = subparsers.add_parser('show')
     parser.add_argument(
         '--show-arg1',
@@ -66,61 +82,68 @@ def add_show(subparsers):
         '--show-arg2',
         help='show arg2')
 
-def add_template(subparsers):
-    parser = subparsers.add_parser('from-template')
-    parser.add_argument(
-        'template',
-        help='path to template file')
+    parser.set_defaults(**defaults)
+    return parser
+
+def validate(**kwargs):
+    required_args = [arg for arg, value in kwargs.items() if value is Required()]
+    if required_args:
+        raise MissingRequiredArgsError(required_args)
+    return True
 
 def main(args=None):
-    args = args if args else sys.argv[1:]
+    args = args if args is None else sys.argv[1:]
     parser = ArgumentParser(
         description=__doc__,
         formatter_class=RawDescriptionHelpFormatter,
         add_help=False)
-    parser.add_argument(
-        '--config',
+    parser.add_argument('--debug',
+        action='store_true',
+        help='default="%(default)s"; toggle debug mode on')
+    parser.add_argument('--verbose',
+        action='store_true',
+        help='default="%(default)s"; toggle verbose mode on')
+    parser.add_argument('--config',
         metavar='FILEPATH',
         default='~/.config/%(NAME)s/%(NAME)s.yml' % globals(),
         help='default="%(default)s"; config filepath')
-    parser.add_argument(
-        '--template',
-        metavar='FILEPATH',
-        help='optional filepath to template with one or more values')
+    template_group = parser.add_argument_group(title='template options')
+    template_group = template_group.add_mutually_exclusive_group(required=False)
+    add_argument(template_group, '-F', '--template-file')
+    add_argument(template_group, '-N', '--template-name')
 
     ns, rem = parser.parse_known_args(args)
 
-    try:
-        config = yaml.safe_load(open(ns.config))
-    except FileNotFoundError as er:
-        config = dict()
     config = defaults_load(ns.config)
-    template = defaults_load(ns.template)
+    template = defaults_load(ns.template_file)
+
     parser = ArgumentParser(
         parents=[parser])
+
     parser.set_defaults(**config)
-    parser.set_defaults(**template)
 
     subparsers = parser.add_subparsers(
         dest='command',
         title='commands',
         description='choose a command to run')
 
-    add_create(subparsers)
-    add_show(subparsers)
-    add_template(subparsers)
+    add_create(subparsers, template)
+    add_show(subparsers, template)
+
+    if ns.verbose:
+        pprint(dict(config=config))
+        pprint(dict(template=template))
 
     ns = parser.parse_args(rem)
-    json = ns.__dict__
-    command = json.pop('command')
-    json.pop('config')
-    json.pop('template')
-    if json.pop('debug'):
-        print(dumps(json, indent=2, sort_keys=True))
+    if ns.verbose:
+        pprint(dict(ns=ns.__dict__))
+    validate(**ns.__dict__)
+    if ns.debug:
+        print(dumps(ns.__dict__, indent=2, sort_keys=True))
         return 1
     else:
         cr = ChangeRequest()
-        return cr.execute(ns)
+        return cr.execute(**ns.__dict__)
 
 if __name__ == '__main__':
     main()
