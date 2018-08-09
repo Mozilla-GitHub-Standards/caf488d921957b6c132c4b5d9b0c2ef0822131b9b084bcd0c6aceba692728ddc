@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import json
+from cr.utils.json import print_json
 
 class ChangeRequest(object):
     def __init__(self):
@@ -32,8 +32,7 @@ class ChangeRequest(object):
         planned_downtime=None,
         verbose=False,
         **kwargs):
-        from pprint import pprint
-        pprint(locals())
+        print_json(locals(), 'self', 'verbose', 'kwargs')
 
     def show(self, **kwargs):
         pass

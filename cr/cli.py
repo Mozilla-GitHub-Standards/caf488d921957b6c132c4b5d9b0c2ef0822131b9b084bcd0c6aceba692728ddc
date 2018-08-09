@@ -6,8 +6,6 @@ import re
 import sys
 sys.dont_write_bytecode = True
 
-from json import dumps
-
 SCRIPT_FILE = os.path.abspath(__file__)
 SCRIPT_NAME = os.path.basename(SCRIPT_FILE)
 SCRIPT_PATH = os.path.dirname(SCRIPT_FILE)
@@ -25,6 +23,7 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
 from cr import ChangeRequest, required
 from cr.constants import *
+from cr.utils.json import print_json
 
 class DatetimeError(Exception):
     def __init__(self, string):
@@ -60,7 +59,10 @@ class MissingRequiredArgsError(Exception):
         msg = 'missing required args error:\n' + '\n'.join(sorted(required_args))
         super(MissingRequiredArgsError, self).__init__(msg)
 
-def add_create(subparsers, defaults):
+def validate(**kwargs):
+    return [arg for arg, value in kwargs.items() if value is required]
+
+def add_create(subparsers, *defaults):
     parser = subparsers.add_parser('create')
 
     required_group = parser.add_argument_group(title='questionnaire required')
@@ -148,10 +150,11 @@ def add_create(subparsers, defaults):
         action='store_true',
         help='default="%(default)s"; toggle if previous change was successfully performed in downtime window')
 
-    parser.set_defaults(**defaults)
+    for d in defaults:
+        parser.set_defaults(**d)
     return parser
 
-def add_show(subparsers, defaults):
+def add_show(subparsers, *defaults):
     parser = subparsers.add_parser('show')
     parser.add_argument(
         '--show-arg1',
@@ -160,15 +163,22 @@ def add_show(subparsers, defaults):
         '--show-arg2',
         help='show arg2')
 
-    parser.set_defaults(**defaults)
+    for d in defaults:
+        parser.set_defaults(**d)
     return parser
 
-def validate(**kwargs):
-    return [arg for arg, value in kwargs.items() if value is required]
+def add_subparsers(parser):
+    subparsers = parser.add_subparsers(
+        dest='command',
+        title='commands',
+        description='choose a command to run')
+    subparsers.required = True
+    return subparsers
 
 def main(args=None):
     args = args if args is None else sys.argv[1:]
     parser = ArgumentParser(add_help=False)
+
     parser.add_argument('--debug',
         action='store_true',
         help='default="%(default)s"; toggle debug mode on')
@@ -179,8 +189,10 @@ def main(args=None):
         metavar='FILEPATH',
         default='~/.config/%(NAME)s/%(NAME)s.yml' % globals(),
         help='default="%(default)s"; config filepath')
-    template_group = parser.add_argument_group(title='template options')
-    template_group = template_group.add_mutually_exclusive_group(required=False)
+
+    template_group = parser\
+        .add_argument_group(title='template options')\
+        .add_mutually_exclusive_group(required=False)
     template_group.add_argument(
         '-F', '--template-file',
         metavar='FILE',
@@ -200,29 +212,21 @@ def main(args=None):
         description=__doc__,
         formatter_class=RawDescriptionHelpFormatter)
 
-    subparsers = parser.add_subparsers(
-        dest='command',
-        title='commands',
-        description='choose a command to run')
-
     parser.set_defaults(**config)
 
-    add_create(subparsers, template)
-    add_show(subparsers, template)
-
-    if ns.verbose:
-        pprint(dict(config=config))
-        pprint(dict(template=template))
+    subparsers = add_subparsers(parser)
+    add_create(subparsers, template, ns.__dict__) #FIXME: it seems like we
+    add_show(subparsers, template, ns.__dict__) # shouldn't have to pass ns here
 
     ns = parser.parse_args(rem)
-    if ns.verbose:
-        pprint(dict(ns=ns.__dict__))
+
     required_args = validate(**ns.__dict__)
     if required_args:
         print('required args missing:\n  ' + '\n  '.join(required_args))
         return 1
+
     if ns.debug:
-        print(dumps(ns.__dict__, indent=2, sort_keys=True))
+        print_json(ns.__dict__)
         return 1
     else:
         cr = ChangeRequest()
