@@ -19,4 +19,4 @@ sys.path.insert(0, os.path.join(SCRIPT_PATH, '..'))
 from cr.cli import main
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

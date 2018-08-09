@@ -20,10 +20,23 @@ NAME, EXT = os.path.splitext(SCRIPT_NAME)
 
 from pprint import pprint
 from ruamel import yaml
+from datetime import datetime
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 
-from cr import ChangeRequest
-from cr import add_argument
+from cr import ChangeRequest, required
+from cr.constants import *
+
+class DatetimeError(Exception):
+    def __init__(self, string):
+        msg = fmt('the string={string} could not be converted to ISO 8601')
+        super(DatetimeError, self).__init__(msg)
+
+def date(string):
+    try:
+        datetime.strptime(string, ISO_8601)
+    except ValueError as ve:
+        raise DatetimeError(string)
+    return string
 
 def defaults_load(filepath, throw=False):
     try:
@@ -51,24 +64,89 @@ def add_create(subparsers, defaults):
     parser = subparsers.add_parser('create')
 
     required_group = parser.add_argument_group(title='questionnaire required')
-    add_argument(required_group, '-S', '--planned-start-date', default=Required())
-    add_argument(required_group, '-E', '--planned-end-date', default=Required())
-    add_argument(required_group, '-C', '--change-plan', default=Required())
-    add_argument(required_group, '-D', '--short-description', default=Required())
-    add_argument(required_group, '-B', '--business-impact', default=Required())
-    add_argument(required_group, '-I', '--change-impact', default=Required())
+    required_group.add_argument(
+        '-S', '--planned-start-date',
+        metavar='DATE',
+        default=required,
+        type=date,
+        help='enter planned start date (ISO 8601)')
+    required_group.add_argument(
+        '-E', '--planned-end-date',
+        metavar='DATE',
+        default=required,
+        type=date,
+        help='enter planned end date (ISO 8601)')
+    required_group.add_argument(
+        '-C', '--change-plan',
+        metavar='PLAN',
+        default=required,
+        help='enter in text regarding the change plan if it is applicable')
+    required_group.add_argument(
+        '-D', '--short-description',
+        metavar='DESC',
+        default=required,
+        help='enter in text regarding the short description if it is applicable')
+    required_group.add_argument(
+        '-B', '--business-impact',
+        metavar='IMPACT',
+        default=required,
+        choices=BUSINESS_IMPACT,
+        help='default="%(default)s"; choose the business impact from [%(choices)s]')
+    required_group.add_argument(
+        '-I', '--change-impact',
+        metavar='IMPACT',
+        default=required,
+        choices=CHANGE_IMPACT,
+        help='default="%(default)s"; choose the impact from [%(choices)s]')
 
     optional_group = parser.add_argument_group(title='questionnaire optional')
-    add_argument(optional_group, '-u', '--user-impact')
-    add_argument(optional_group, '-s', '--security-risk-level')
-    add_argument(optional_group, '-f', '--change-frequency')
-    add_argument(optional_group, '-t', '--test-plan')
-    add_argument(optional_group, '-p', '--post-implementation-plan')
-    add_argument(optional_group, '-e', '--customer-end-user-plan')
-    add_argument(optional_group, '-r', '--rollback-procedure')
-    add_argument(optional_group, '-R', '--peer-review-date')
-    add_argument(optional_group, '-v', '--vendor-name')
-    add_argument(optional_group, '-d', '--planned-downtime')
+    optional_group.add_argument(
+        '-u', '--user-impact',
+        metavar='IMPACT',
+        default=USER_IMPACT[0],
+        choices=USER_IMPACT,
+        help='default="%(default)s"; choose the user-impact from [%(choices)s]')
+    optional_group.add_argument(
+        '-s', '--security-risk-level',
+        metavar='LEVEL',
+        default=SECURITY_RISK_LEVEL[0],
+        choices=SECURITY_RISK_LEVEL,
+        help='default="%(default)s"; choose the security risk level from [%(choices)s]')
+    optional_group.add_argument(
+        '-f', '--change-frequency',
+        metavar='FREQ',
+        default=CHANGE_FREQUENCY[0],
+        choices=CHANGE_FREQUENCY,
+        help='default="%(default)s"; choose the change frequency from [%(choices)s]')
+    optional_group.add_argument(
+        '-t', '--test-plan',
+        metavar='PLAN',
+        help='enter in text regarding the test plan if it is applicable')
+    optional_group.add_argument(
+        '-p', '--post-implementation-plan',
+        metavar='PLAN',
+        help='enter in text regarding the post implementation plan, if applicable')
+    optional_group.add_argument(
+        '-e', '--customer-end-user-plan',
+        metavar='PLAN',
+        help='enter in text regarding the customer / end-user plan, if applicable')
+    optional_group.add_argument(
+        '-r', '--rollback-procedure',
+        metavar='PROC',
+        help='enter in text regarding the rollback procedure')
+    optional_group.add_argument(
+        '-R', '--peer-review-date',
+        metavar='DATE',
+        type=date,
+        help='enter peer-review date (ISO 8601), if applicable')
+    optional_group.add_argument(
+        '-v', '--vendor-name',
+        metavar='NAME',
+        help='enter the vendor name, if applicable')
+    optional_group.add_argument(
+        '-d', '--planned-downtime',
+        action='store_true',
+        help='default="%(default)s"; toggle if previous change was successfully performed in downtime window')
 
     parser.set_defaults(**defaults)
     return parser
@@ -86,17 +164,11 @@ def add_show(subparsers, defaults):
     return parser
 
 def validate(**kwargs):
-    required_args = [arg for arg, value in kwargs.items() if value is Required()]
-    if required_args:
-        raise MissingRequiredArgsError(required_args)
-    return True
+    return [arg for arg, value in kwargs.items() if value is required]
 
 def main(args=None):
     args = args if args is None else sys.argv[1:]
-    parser = ArgumentParser(
-        description=__doc__,
-        formatter_class=RawDescriptionHelpFormatter,
-        add_help=False)
+    parser = ArgumentParser(add_help=False)
     parser.add_argument('--debug',
         action='store_true',
         help='default="%(default)s"; toggle debug mode on')
@@ -109,8 +181,14 @@ def main(args=None):
         help='default="%(default)s"; config filepath')
     template_group = parser.add_argument_group(title='template options')
     template_group = template_group.add_mutually_exclusive_group(required=False)
-    add_argument(template_group, '-F', '--template-file')
-    add_argument(template_group, '-N', '--template-name')
+    template_group.add_argument(
+        '-F', '--template-file',
+        metavar='FILE',
+        help='path to template file')
+    template_group.add_argument(
+        '-N', '--template-name',
+        metavar='NAME',
+        help='name of template stored on server')
 
     ns, rem = parser.parse_known_args(args)
 
@@ -118,14 +196,16 @@ def main(args=None):
     template = defaults_load(ns.template_file)
 
     parser = ArgumentParser(
-        parents=[parser])
-
-    parser.set_defaults(**config)
+        parents=[parser],
+        description=__doc__,
+        formatter_class=RawDescriptionHelpFormatter)
 
     subparsers = parser.add_subparsers(
         dest='command',
         title='commands',
         description='choose a command to run')
+
+    parser.set_defaults(**config)
 
     add_create(subparsers, template)
     add_show(subparsers, template)
@@ -137,7 +217,10 @@ def main(args=None):
     ns = parser.parse_args(rem)
     if ns.verbose:
         pprint(dict(ns=ns.__dict__))
-    validate(**ns.__dict__)
+    required_args = validate(**ns.__dict__)
+    if required_args:
+        print('required args missing:\n  ' + '\n  '.join(required_args))
+        return 1
     if ns.debug:
         print(dumps(ns.__dict__, indent=2, sort_keys=True))
         return 1
@@ -146,4 +229,4 @@ def main(args=None):
         return cr.execute(**ns.__dict__)
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())
