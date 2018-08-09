@@ -130,14 +130,6 @@ ARGS = {
         action='store_true',
         help='default="%(default)s"; toggle if previous change was successfully performed in downtime window'
     ),
-    ('-F', '--template-file',): dict(
-        metavar='FILE',
-        help='path to template file'
-    ),
-    ('-N', '--template-name',): dict(
-        metavar='NAME',
-        help='name of template stored on server'
-    ),
 }
 
 # they can be overridden by supplying kwargs to this function
@@ -145,3 +137,21 @@ def add_argument(parser, *sig, **overrides):
     parser.add_argument(
         *sig,
         **merge(ARGS[sig], overrides))
+
+#    add_argument(required_group, '-S', '--planned-start-date', default=required)
+#    add_argument(required_group, '-E', '--planned-end-date', default=required)
+#    add_argument(required_group, '-C', '--change-plan', default=required)
+#    add_argument(required_group, '-D', '--short-description', default=required)
+#    add_argument(required_group, '-B', '--business-impact', default=required)
+#    add_argument(required_group, '-I', '--change-impact', default=required)
+
+#    add_argument(optional_group, '-u', '--user-impact')
+#    add_argument(optional_group, '-s', '--security-risk-level')
+#    add_argument(optional_group, '-f', '--change-frequency')
+#    add_argument(optional_group, '-t', '--test-plan')
+#    add_argument(optional_group, '-p', '--post-implementation-plan')
+#    add_argument(optional_group, '-e', '--customer-end-user-plan')
+#    add_argument(optional_group, '-r', '--rollback-procedure')
+#    add_argument(optional_group, '-R', '--peer-review-date')
+#    add_argument(optional_group, '-v', '--vendor-name')
+#    add_argument(optional_group, '-d', '--planned-downtime')
