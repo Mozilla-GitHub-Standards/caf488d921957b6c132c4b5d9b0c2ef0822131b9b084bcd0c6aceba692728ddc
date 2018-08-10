@@ -12,4 +12,5 @@ def test_help(capfd):
     assert pytest_wrapped_ex.type == SystemExit
     assert pytest_wrapped_ex.value.code == 0
     out, err = capfd.readouterr()
+    assert out
     assert '-h, --help' in out

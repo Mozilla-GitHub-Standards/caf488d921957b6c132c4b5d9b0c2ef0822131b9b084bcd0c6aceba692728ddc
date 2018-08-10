@@ -25,6 +25,9 @@ from cr import ChangeRequest, required
 from cr.constants import *
 from cr.utils.json import print_json
 
+class MainMissingArgsError(Exception):
+    pass
+
 class DatetimeError(Exception):
     def __init__(self, string):
         msg = fmt('the string={string} could not be converted to ISO 8601')
@@ -176,7 +179,8 @@ def add_subparsers(parser):
     return subparsers
 
 def main(args=None):
-    args = args if args is None else sys.argv[1:]
+    if args == None:
+        raise MainMissingArgsError
     parser = ArgumentParser(add_help=False)
 
     parser.add_argument('--debug',

@@ -77,7 +77,7 @@ def task_pycov():
     '''
     return dict(
         actions=[
-            fmt('pytest {PYTHON} -m pytest -s -vv --cov={BZDIR} {TESTDIR}'),
+            fmt('{PYTHON} -m pytest -s -vv --cov={BZDIR} {TESTDIR}'),
         ],
     )
 
@@ -100,10 +100,13 @@ def task_rmcache():
     '''
     remove pycache files
     '''
-    cachedirs = rglob('**/__pycache__')
-    print('cachedirs =', cachedirs)
+    cachedirs = glob('**/__pycache__', recursive=True)
+    cachedirs = ' '.join(cachedirs)
     return dict(
         actions=[
-            fmt('{RMRF} **/__pycache__'),
+            fmt('{RMRF} {cachedirs}'),
+        ],
+        uptodate=[
+            lambda: cachedirs == '',
         ],
     )
