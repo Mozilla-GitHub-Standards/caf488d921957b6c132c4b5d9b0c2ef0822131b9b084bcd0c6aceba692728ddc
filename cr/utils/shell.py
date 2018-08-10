@@ -1,6 +1,10 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 '''
 shell utilities
 '''
+
 import os
 import re
 import sys

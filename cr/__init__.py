@@ -1,5 +1,5 @@
-__version__ = 'v0.0.1'
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 
 from .cr import ChangeRequest
 from .required import required
-#from .arguments import add_argument
