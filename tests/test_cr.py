@@ -3,6 +3,6 @@
 
 from cr import ChangeRequest
 
-def test_cr():
+def test_instantiation():
     cr = ChangeRequest()
     assert cr

@@ -30,6 +30,7 @@ class ChangeRequest(object):
         peer_review_date=None,
         vendor_name=None,
         planned_downtime=None,
+        template_name=None,
         verbose=False,
         **kwargs):
         print_json(locals(), 'self', 'verbose', 'kwargs')
