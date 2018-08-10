@@ -20,7 +20,7 @@ DOIT_CONFIG = {
 DODO = 'dodo.py'
 PYTHON = which('python3')
 REPOROOT = os.path.dirname(os.path.abspath(__file__))
-BZDIR = fmt('{REPOROOT}/cr')
+CRDIR = fmt('{REPOROOT}/cr')
 TESTDIR = fmt('{REPOROOT}/tests')
 BINDIR = fmt('{REPOROOT}/bin')
 
@@ -35,8 +35,8 @@ except:
     RMRF = 'rm -rf'
 
 def pyfiles():
-    with cd(REPOROOT):
-        return sorted(glob('cr/**/*.py', recursive=True))
+    with cd(CRDIR):
+        return sorted(glob('**/*.py', recursive=True))
 
 def task_list_pyfiles():
     '''
@@ -77,7 +77,7 @@ def task_pycov():
     '''
     return dict(
         actions=[
-            fmt('pytest {PYTHON} -m pytest -s -vv --cov={BZDIR} {TESTDIR}'),
+            fmt('pytest {PYTHON} -m pytest -s -vv --cov={CRDIR} {TESTDIR}'),
         ],
     )
 
