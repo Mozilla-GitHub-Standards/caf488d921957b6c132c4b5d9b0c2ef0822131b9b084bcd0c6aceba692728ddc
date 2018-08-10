@@ -24,6 +24,7 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from cr import ChangeRequest, required
 from cr.constants import *
 from cr.utils.json import print_json
+from cr.version import version
 
 class DatetimeError(Exception):
     def __init__(self, string):
@@ -179,6 +180,9 @@ def main(args=None):
     args = args if args is None else sys.argv[1:]
     parser = ArgumentParser(add_help=False)
 
+    parser.add_argument('--version',
+        action='version',
+        version='change-request ' + version)
     parser.add_argument('--debug',
         action='store_true',
         help='default="%(default)s"; toggle debug mode on')
