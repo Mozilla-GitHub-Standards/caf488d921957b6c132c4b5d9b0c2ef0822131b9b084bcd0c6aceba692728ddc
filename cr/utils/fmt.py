@@ -4,47 +4,63 @@
 format: here there be baby dragons!
 '''
 
+import re
 import inspect
 from pprint import pprint, pformat
 
-from cr.utils.dictionary import merge
+__all__ = [
+    'dbg',
+    'fmt',
+    'pfmt',
+]
 
-def fmt_dict(obj):
+def dbg(*args, **kwargs):
+    frame = inspect.currentframe().f_back
+    return _dbg(args, kwargs, frame, do_print=True)
+
+def fmt(string, *args, **kwargs):
+    frame = inspect.currentframe().f_back
+    return _fmt(string, args, kwargs, frame)
+
+def pfmt(string, *args, **kwargs):
+    frame = inspect.currentframe().f_back
+    return _fmt(string, args, kwargs, frame, do_print=True)
+
+def _dbg(args, kwargs, frame, do_print=False):
+    klass = frame.f_locals.get('self', None)
+    string = 'DBG: '
+    if klass:
+        string += klass.__class__.__name__ + '.'
+    string += frame.f_code.co_name + ': '
+
+    context = inspect.getframeinfo(frame).code_context
+    callsite = ''.join([line.strip() for line in context])
+    match = re.search(r'p?dbg\s*\((.+?)\)$', callsite)
+    if match:
+        params = [param.strip() for param in match.group(1).split(',')]
+    names = params[:len(args)] + list(kwargs.keys())
+    string += ' '.join([name+'={'+name+'}' for name in names])
+    return _fmt(string, args, kwargs, frame, do_print=do_print)
+
+def _fmt_dict(obj):
     if isinstance(obj, dict):
         return pformat(obj)
     return str(obj)
 
-def _format(string, *args, **kwargs):
-    return string.format(*args, **kwargs)
-
-def _fmt(string, args, kwargs, do_print=False):
-    '''
-    here there be baby dragons!
-    '''
+def _fmt(string, args, kwargs, frame, do_print=False):
     try:
-        if args or kwargs:
-            return _format(
-                string,
-                *[fmt_dict(arg) for arg in args],
-                **{k:fmt_dict(v) for k,v in kwargs.items()})
-        frame = inspect.currentframe().f_back.f_back
-        gl = dict(locals=frame.f_locals, globals=frame.f_globals)
+        gl = {
+            'locals': frame.f_locals,
+            'globals': frame.f_globals,
+        }
         gl.update(frame.f_globals)
         gl.update(frame.f_locals)
+        gl.update(kwargs)
         if frame.f_code.co_name == '<listcomp>':
-            frame = frame.f_back
-            gl.update(frame.f_locals)
-        s = _format(string, **{k:fmt_dict(v) for k,v in gl.items()})
+            gl.update(frame.f_back.f_locals)
+        result= string.format(*args, **{k:_fmt_dict(v) for k,v in gl.items()})
     except KeyError as ke:
-        print('keyerror not found in following keys of gl dict:')
-        pprint(list(gl.keys()))
-        raise ke
+        raise FmtError(gl)
     if do_print:
-        print(s)
-    return s
-
-def fmt(string, *args, **kwargs):
-    return _fmt(string, args, kwargs)
-
-def pfmt(string, *args, **kwargs):
-    return _fmt(string, args, kwargs, do_print=True)
+        print(result)
+    return result
