@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from cr import Bugzilla
+from cr import ChangeRequest
 
 def test_cr():
-    cr = Bugzilla()
+    cr = ChangeRequest
     assert cr

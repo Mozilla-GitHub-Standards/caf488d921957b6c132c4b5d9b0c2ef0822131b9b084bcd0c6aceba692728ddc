@@ -4,7 +4,6 @@
 import pytest
 
 from cr.cli import main
-from cr.utils.shell import call
 
 def test_help(capfd):
     with pytest.raises(SystemExit) as pytest_wrapped_ex:
