@@ -177,7 +177,6 @@ def add_subparsers(parser):
     return subparsers
 
 def main(args=None):
-    args = args if args is None else sys.argv[1:]
     parser = ArgumentParser(add_help=False)
 
     parser.add_argument('--version',
