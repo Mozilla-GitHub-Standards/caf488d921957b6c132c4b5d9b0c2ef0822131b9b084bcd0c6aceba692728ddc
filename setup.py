@@ -37,7 +37,7 @@ with open(os.path.join(SCRIPT_PATH, 'README.rst')) as f:
 setup(
     name ='cr-cli',
     version = version[1:] if version.startswith('v') else version,
-    description = 'bugzilla cli in Python',
+    description = 'change-request cli in Python',
     long_description = README,
     url = 'https://github.com/mozilla-it/cr-cli',
     author = 'Scott Idler',
