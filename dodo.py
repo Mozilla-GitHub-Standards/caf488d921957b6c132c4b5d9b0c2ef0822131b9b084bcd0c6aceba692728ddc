@@ -101,7 +101,6 @@ def task_rmcache():
     remove pycache files
     '''
     cachedirs = rglob('**/__pycache__')
-    print('cachedirs =', cachedirs)
     return dict(
         actions=[
             fmt('{RMRF} **/__pycache__'),
