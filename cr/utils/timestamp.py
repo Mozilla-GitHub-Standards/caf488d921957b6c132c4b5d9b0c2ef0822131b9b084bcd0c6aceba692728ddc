@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from cr.utils.fmt import fmt, pfmt
+from .fmt import fmt, pfmt
 
 def utcnow():
     return datetime.utcnow()
