@@ -24,7 +24,7 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from cr import ChangeRequest, required
 from cr.constants import *
 from cr.utils.json import print_json
-from cr.version import version
+from cr.utils.version import version
 
 class DatetimeError(Exception):
     def __init__(self, string):

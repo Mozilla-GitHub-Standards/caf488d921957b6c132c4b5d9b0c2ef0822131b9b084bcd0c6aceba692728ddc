@@ -10,7 +10,7 @@ from glob import glob
 from itertools import chain
 from setuptools import Command, find_packages, setup
 
-from cr.version import version
+from cr.utils.version import version
 
 SCRIPT_FILE = os.path.abspath(__file__)
 SCRIPT_NAME = os.path.basename(SCRIPT_FILE)
