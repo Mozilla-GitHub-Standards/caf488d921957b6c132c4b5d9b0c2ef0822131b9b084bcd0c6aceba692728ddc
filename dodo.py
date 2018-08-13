@@ -38,7 +38,7 @@ def pyfiles():
     with cd(CRDIR):
         return sorted(glob('**/*.py', recursive=True))
 
-def task_list_pyfiles():
+def task_pyfiles():
     '''
     print all of the pyfiles
     '''
@@ -67,7 +67,7 @@ def task_pytest():
     '''
     return dict(
         actions=[
-            fmt('{PYTHON} -m pytest -s -vv {TESTDIR}'),
+            fmt('{PYTHON} -B -m pytest -s -vv {TESTDIR}'),
         ],
     )
 
@@ -77,7 +77,7 @@ def task_pycov():
     '''
     return dict(
         actions=[
-            fmt('pytest {PYTHON} -m pytest -s -vv --cov={CRDIR} {TESTDIR}'),
+            fmt('pytest {PYTHON} -B -m pytest -s -vv --cov={CRDIR} {TESTDIR}'),
         ],
     )
 
@@ -93,16 +93,5 @@ def task_test():
         ],
         actions=[
             'echo "testing complete"',
-        ],
-    )
-
-def task_rmcache():
-    '''
-    remove pycache files
-    '''
-    cachedirs = rglob('**/__pycache__')
-    return dict(
-        actions=[
-            fmt('{RMRF} **/__pycache__'),
         ],
     )
