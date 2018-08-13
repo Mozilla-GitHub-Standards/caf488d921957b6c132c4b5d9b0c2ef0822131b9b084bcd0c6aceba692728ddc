@@ -25,6 +25,7 @@ from cr import ChangeRequest, required
 from cr.constants import *
 from cr.utils.json import print_json
 from cr.utils.version import version
+from cr.utils.fmt import *
 
 class DatetimeError(Exception):
     def __init__(self, string):
