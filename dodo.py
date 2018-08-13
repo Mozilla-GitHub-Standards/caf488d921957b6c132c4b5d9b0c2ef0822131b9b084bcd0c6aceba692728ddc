@@ -60,7 +60,7 @@ def pyfiles():
 
 def task_pyfiles():
     '''
-    print all of the pyfiles
+    list py files
     '''
     text = '\n'.join(pyfiles())
     return dict(

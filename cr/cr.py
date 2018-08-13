@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from cr.utils.json import print_json
+from cr.utils.asyncrequests import AsyncRequests
 
 class ChangeRequest(object):
     def __init__(self):
