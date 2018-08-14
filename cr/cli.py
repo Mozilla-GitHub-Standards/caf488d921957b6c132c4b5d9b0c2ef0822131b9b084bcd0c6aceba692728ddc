@@ -47,9 +47,7 @@ class PlannedStopBeforeStartError(Exception):
 def _to_iso_8601(string):
     try:
         return datetime.strptime(string, ISO_8601)
-    except:
-        import traceback
-        traceback.print_exc()
+    except Exception as ex:
         raise DateParseError(string)
 
 class PeerReviewDate(Action):
@@ -64,7 +62,8 @@ class PlannedStart(Action):
             stop = utcnow
         elif value.startswith('+'):
             td = friendly.timedelta(value[1:])
-            stop += td
+            dbg(td)
+            stop = utcnow + td
         else:
             stop = _to_iso_8601(value)
             if stop < utcnow:
