@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+'''
+change-request cli
+
+'''
 
 import os
 import re
@@ -26,8 +30,8 @@ from cr.constants import *
 from cr.utils.json import print_json
 from cr.utils.version import version
 from cr.utils.fmt import *
-
 from cr.utils import friendly
+from cr.utils.docstr import docstr
 
 class DateParseError(Exception):
     def __init__(self, string):
@@ -105,8 +109,33 @@ class MissingRequiredArgsError(Exception):
 def validate(**kwargs):
     return [arg for arg, value in kwargs.items() if value is required]
 
+FRIENDLY_TIMEDELTA = '''
+<friendly-timedelta>
+allows weeks, days, hours, minutes and seconds to be
+represented with an integer [0-9]+ and one of these letters: w, d, h, m, s.
+ex. 1w2h30m represents a timedelta of 1 week, 2 hours and 30 minutes
+'''
+DATETIME_OR_TIMEDELTA = '''
+prefix + to friendly-timedelta for date equivalent to {anchor} +timedelta
+OR enter future datetime (ISO 8601 format); ex +4h15m OR 2020-1-16T12:30:00Z
+'''
 def add_create(subparsers, *defaults):
-    parser = subparsers.add_parser('create')
+    parser = subparsers.add_parser(
+        'create',
+        description=FRIENDLY_TIMEDELTA)
+    parser.add_argument(
+        'planned_start_date',
+        metavar='planned-start',
+        nargs='?',
+        default='utcnow',
+        action=PlannedStart,
+        help='default="%(default)s"; ' + fmt(DATETIME_OR_TIMEDELTA, anchor='utcnow'))
+    parser.add_argument(
+        'planned_stop_date',
+        metavar='planned-stop',
+        action=PlannedStop,
+        help=fmt(DATETIME_OR_TIMEDELTA, anchor='planned-start'))
+
 
     required_group = parser.add_argument_group(title='questionnaire required')
     required_group.add_argument(
@@ -180,19 +209,6 @@ def add_create(subparsers, *defaults):
         '-d', '--planned-downtime',
         action='store_true',
         help='default="%(default)s"; toggle if previous change was successfully performed in downtime window')
-
-    parser.add_argument(
-        'planned_start_date',
-        metavar='planned-start',
-        nargs='?',
-        default='utcnow',
-        action=PlannedStart,
-        help='default="%(default)s"; enter planned start date (ISO 8601)')
-    parser.add_argument(
-        'planned_stop_date',
-        metavar='planned-stop',
-        action=PlannedStop,
-        help='enter planned stop date (ISO 8601)')
 
     for d in defaults:
         parser.set_defaults(**d)
