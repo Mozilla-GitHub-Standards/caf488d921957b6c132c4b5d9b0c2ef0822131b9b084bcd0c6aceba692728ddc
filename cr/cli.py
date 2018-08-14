@@ -19,7 +19,7 @@ NAME, EXT = os.path.splitext(SCRIPT_NAME)
 from pprint import pprint
 from ruamel import yaml
 from datetime import datetime
-from argparse import ArgumentParser, RawDescriptionHelpFormatter
+from argparse import ArgumentParser, RawDescriptionHelpFormatter, Action
 
 from cr import ChangeRequest, required
 from cr.constants import *
@@ -27,17 +27,59 @@ from cr.utils.json import print_json
 from cr.utils.version import version
 from cr.utils.fmt import *
 
-class DatetimeError(Exception):
+from cr.utils import friendly
+
+class DateParseError(Exception):
     def __init__(self, string):
         msg = fmt('the string={string} could not be converted to ISO 8601')
-        super(DatetimeError, self).__init__(msg)
+        super(DateParseError, self).__init__(msg)
 
-def date(string):
+class PlannedStartInPastError(Exception):
+    def __init__(self, start):
+        msg = fmt('error: planned-start {start} is in the past')
+        super(PlannedStartInPastError, self).__init__(msg)
+
+class PlannedStopBeforeStartError(Exception):
+    def __init__(self, stop, start):
+        msg = fmt('error: planned-stop {stop} is before planned-start {start}')
+        super(PlannedStopBeforeStartError, self).__init__(msg)
+
+def _to_iso_8601(string):
     try:
-        datetime.strptime(string, ISO_8601)
-    except ValueError as ve:
-        raise DatetimeError(string)
-    return string
+        return datetime.strptime(string, ISO_8601)
+    except:
+        import traceback
+        traceback.print_exc()
+        raise DateParseError(string)
+
+class PeerReviewDate(Action):
+    def __call__(self, parser, ns, value, option_string=None):
+        review = _to_iso_8601(value)
+        setattr(ns, parser.dest, review)
+
+class PlannedStart(Action):
+    def __call__(self, parser, ns, value, option_string=None):
+        utcnow = datetime.utcnow()
+        if value == 'utcnow':
+            stop = utcnow
+        elif value.startswith('+'):
+            td = friendly.timedelta(value[1:])
+            stop += td
+        else:
+            stop = _to_iso_8601(value)
+            if stop < utcnow:
+                raise PlannedStartInPastError(value)
+        setattr(ns, self.dest, stop.strftime(ISO_8601))
+
+class PlannedStop(Action):
+    def __call__(self, parser, ns, value, option_string=None):
+        if value.startswith('+'):
+            start = _to_iso_8601(ns.planned_start_date)
+            td = friendly.timedelta(value[1:])
+            stop = start + td
+        else:
+            stop = _to_iso_8601(value)
+        setattr(ns, self.dest, stop.strftime(ISO_8601))
 
 def defaults_load(filepath, throw=False):
     try:
@@ -68,18 +110,6 @@ def add_create(subparsers, *defaults):
     parser = subparsers.add_parser('create')
 
     required_group = parser.add_argument_group(title='questionnaire required')
-    required_group.add_argument(
-        '-S', '--planned-start-date',
-        metavar='DATE',
-        default=required,
-        type=date,
-        help='enter planned start date (ISO 8601)')
-    required_group.add_argument(
-        '-E', '--planned-end-date',
-        metavar='DATE',
-        default=required,
-        type=date,
-        help='enter planned end date (ISO 8601)')
     required_group.add_argument(
         '-C', '--change-plan',
         metavar='PLAN',
@@ -141,7 +171,7 @@ def add_create(subparsers, *defaults):
     optional_group.add_argument(
         '-R', '--peer-review-date',
         metavar='DATE',
-        type=date,
+        action=PeerReviewDate,
         help='enter peer-review date (ISO 8601), if applicable')
     optional_group.add_argument(
         '-v', '--vendor-name',
@@ -151,6 +181,19 @@ def add_create(subparsers, *defaults):
         '-d', '--planned-downtime',
         action='store_true',
         help='default="%(default)s"; toggle if previous change was successfully performed in downtime window')
+
+    parser.add_argument(
+        'planned_start_date',
+        metavar='planned-start',
+        nargs='?',
+        default='utcnow',
+        action=PlannedStart,
+        help='default="%(default)s"; enter planned start date (ISO 8601)')
+    parser.add_argument(
+        'planned_stop_date',
+        metavar='planned-stop',
+        action=PlannedStop,
+        help='enter planned stop date (ISO 8601)')
 
     for d in defaults:
         parser.set_defaults(**d)

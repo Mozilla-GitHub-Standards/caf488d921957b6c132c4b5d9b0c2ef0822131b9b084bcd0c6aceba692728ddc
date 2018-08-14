@@ -4,6 +4,8 @@
 from cr.utils.json import print_json
 from cr.utils.asyncrequests import AsyncRequests
 
+from cr.utils.fmt import *
+
 class ChangeRequest(object):
     def __init__(self):
         pass
@@ -16,7 +18,7 @@ class ChangeRequest(object):
 
     def create(self,
         planned_start_date=None,
-        planned_end_date=None,
+        planned_stop_date=None,
         change_plan=None,
         short_description=None,
         business_impact=None,
@@ -33,6 +35,7 @@ class ChangeRequest(object):
         planned_downtime=None,
         verbose=False,
         **kwargs):
+
         print_json(locals(), 'self', 'verbose', 'kwargs')
 
     def show(self, **kwargs):
