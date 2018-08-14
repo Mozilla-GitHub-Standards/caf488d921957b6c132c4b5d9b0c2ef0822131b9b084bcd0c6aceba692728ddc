@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 ISO_8601 = '%Y-%m-%dT%H:%M:%S%fZ'
+ISO_8601 = '%Y-%m-%dT%H:%M:%SZ'
 
 USER_IMPACT = [
     '0-10',
