@@ -117,7 +117,7 @@ ex. 1w2h30m represents a timedelta of 1 week, 2 hours and 30 minutes
 '''
 DATETIME_OR_TIMEDELTA = '''
 prefix + to friendly-timedelta for date equivalent to {anchor} +timedelta
-OR enter future datetime (ISO 8601 format); ex +4h15m OR 2020-1-16T12:30:00Z
+OR enter future datetime (ISO 8601 format); ex {example}
 '''
 def add_create(subparsers, *defaults):
     parser = subparsers.add_parser(
@@ -129,12 +129,12 @@ def add_create(subparsers, *defaults):
         nargs='?',
         default='utcnow',
         action=PlannedStart,
-        help='default="%(default)s"; ' + fmt(DATETIME_OR_TIMEDELTA, anchor='utcnow'))
+        help='default="%(default)s"; ' + fmt(DATETIME_OR_TIMEDELTA, anchor='utcnow', example='+4h15m OR 2020-1-16T12:30:00Z'))
     parser.add_argument(
         'planned_stop_date',
         metavar='planned-stop',
         action=PlannedStop,
-        help=fmt(DATETIME_OR_TIMEDELTA, anchor='planned-start'))
+        help=fmt(DATETIME_OR_TIMEDELTA, anchor='planned-start', example='+2w3d8h OR 2056-10-30T7:58:13Z'))
 
 
     required_group = parser.add_argument_group(title='questionnaire required')
