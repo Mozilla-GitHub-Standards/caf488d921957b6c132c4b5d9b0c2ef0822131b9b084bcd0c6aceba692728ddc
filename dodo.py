@@ -55,8 +55,8 @@ def task_submod():
         )
 
 def pyfiles():
-    with cd(CRDIR):
-        return sorted(glob('**/*.py', recursive=True))
+    with cd(REPOROOT):
+        return sorted(glob('cr/**/*.py', recursive=True))
 
 def task_pyfiles():
     '''

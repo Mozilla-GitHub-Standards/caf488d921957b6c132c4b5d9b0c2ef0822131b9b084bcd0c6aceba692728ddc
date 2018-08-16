@@ -27,11 +27,17 @@ from argparse import ArgumentParser, RawDescriptionHelpFormatter, Action
 
 from cr import ChangeRequest, required
 from cr.constants import *
-from cr.utils.json import print_json
-from cr.utils.version import version
 from cr.utils.fmt import *
 from cr.utils import friendly
+from cr.utils.json import print_json
+from cr.utils.version import version
 from cr.utils.docstr import docstr
+from cr.utils.config import load_config
+from cr.utils.git import reporoot
+
+PROJ = 'change-request'
+CWD = os.getcwd().replace(os.path.expanduser('~'), '~')
+REPOROOT = reporoot()
 
 class DateParseError(Exception):
     def __init__(self, string):
@@ -83,14 +89,6 @@ class PlannedStop(Action):
         else:
             stop = _to_iso_8601(value)
         setattr(ns, self.dest, stop.strftime(ISO_8601))
-
-def defaults_load(filepath, throw=False):
-    try:
-        return yaml.safe_load(open(filepath))
-    except (TypeError, FileNotFoundError) as er:
-        if throw:
-            raise er
-        return {}
 
 class Required(object):
     __instance = None
@@ -249,7 +247,10 @@ def main(args=None):
         help='default="%(default)s"; toggle verbose mode on')
     parser.add_argument('--config',
         metavar='FILEPATH',
-        default='~/.config/%(NAME)s/%(NAME)s.yml' % globals(),
+        default=[
+            fmt('~/.config/{PROJ}/{PROJ}.yml'),
+            fmt('{CWD}/{PROJ}.yml'),
+        ],
         help='default="%(default)s"; config filepath')
 
     template_group = parser\
@@ -266,13 +267,17 @@ def main(args=None):
 
     ns, rem = parser.parse_known_args(args)
 
-    config = defaults_load(ns.config)
-    template = defaults_load(ns.template_file)
+    config = load_config(*ns.config)
+    template = load_config(ns.template_file)
 
     parser = ArgumentParser(
         parents=[parser],
         description=__doc__,
         formatter_class=RawDescriptionHelpFormatter)
+    parser.add_argument(
+        '--change-request-url',
+        metavar='URL',
+        help='default="%(default)s"; the REST api endpoint url')
 
     parser.set_defaults(**config)
 
