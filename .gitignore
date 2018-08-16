@@ -108,3 +108,9 @@ venv.bak/
 
 # ignore VERSION file
 VERSION
+
+#ignore config files
+*.yml
+*.json
+*.cfg
+*.ini
