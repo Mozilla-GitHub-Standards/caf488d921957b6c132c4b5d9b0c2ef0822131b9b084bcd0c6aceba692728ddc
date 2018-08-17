@@ -263,7 +263,7 @@ def add_subparsers(parser):
     subparsers.required = True
     return subparsers
 
-def main(args=None):
+def add_cr():
     parser = ArgumentParser(add_help=False)
 
     parser.add_argument(
@@ -292,6 +292,10 @@ def main(args=None):
         default=default_output(),
         choices=OUTPUT,
         help='default="%(default)s"; set the output type; choices=[%(choices)s]')
+    parser.add_argument(
+        '--api-url',
+        metavar='URL',
+        help='default="%(default)s"; the REST api endpoint url')
 
     template_group = parser\
         .add_argument_group(title='template options')\
@@ -305,18 +309,17 @@ def main(args=None):
         metavar='NAME',
         help='name of template stored on server')
 
+    return parser
+
+def main(args=None):
     try:
+        parser = add_cr()
         ns, rem = parser.parse_known_args(args)
 
         parser = ArgumentParser(
             parents=[parser],
             description=__doc__,
             formatter_class=RawDescriptionHelpFormatter)
-        parser.add_argument(
-            '--change-request-url',
-            metavar='URL',
-            help='default="%(default)s"; the REST api endpoint url')
-
         config = load_config(*ns.config)
         template = load_config(ns.template_file)
 
