@@ -14,7 +14,7 @@ if os.path.islink(__file__):
     REAL_NAME = os.path.basename(REAL_FILE)
     REAL_PATH = os.path.dirname(REAL_FILE)
 
-sys.path.insert(0, os.path.join(SCRIPT_PATH, '..'))
+sys.path.insert(0, os.path.abspath(os.path.join(SCRIPT_PATH, '..')))
 
 from cr.cli import main
 
