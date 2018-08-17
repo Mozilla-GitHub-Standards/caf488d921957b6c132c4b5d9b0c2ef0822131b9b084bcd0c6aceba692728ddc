@@ -29,41 +29,57 @@ from cr import ChangeRequest, required
 from cr.constants import *
 from cr.utils.fmt import *
 from cr.utils import friendly
-from cr.utils.json import print_json
+from cr.utils.json import json_print
 from cr.utils.version import version
 from cr.utils.docstr import docstr
 from cr.utils.config import load_config
 from cr.utils.git import reporoot
+from cr.utils.output import OUTPUT, default_output, output_print
 
 PROJ = 'change-request'
 CWD = os.getcwd().replace(os.path.expanduser('~'), '~')
 REPOROOT = reporoot()
 
-class DateParseError(Exception):
+class ChangeRequestError(Exception):
+    pass
+
+class RequiredArgsMissingError(ChangeRequestError):
+    def __init__(self, required_args):
+        msg = 'required args missing:\n  ' + '\n  '.join(required_args)
+        super(RequiredArgsMissingError, self).__init__(msg)
+
+class DateParseError(ChangeRequestError):
     def __init__(self, string):
         msg = fmt('the string={string} could not be converted to ISO 8601')
         super(DateParseError, self).__init__(msg)
 
-class PlannedStartInPastError(Exception):
+class FuturePeerReviewError(ChangeRequestError):
+    def __init__(self, string, utcnow):
+        msg = fmt('future peer_review_date={string} before utcnow={utcnow} not allowed')
+        super(FuturePeerReviewError, self).__init__(msg)
+
+class PlannedStartInPastError(ChangeRequestError):
     def __init__(self, start):
         msg = fmt('error: planned-start {start} is in the past')
         super(PlannedStartInPastError, self).__init__(msg)
 
-class PlannedStopBeforeStartError(Exception):
+class PlannedStopBeforeStartError(ChangeRequestError):
     def __init__(self, stop, start):
         msg = fmt('error: planned-stop {stop} is before planned-start {start}')
         super(PlannedStopBeforeStartError, self).__init__(msg)
 
-def _to_iso_8601(string):
-    try:
-        return datetime.strptime(string, ISO_8601)
-    except Exception as ex:
-        raise DateParseError(string)
+class MissingRequiredArgsError(ChangeRequestError):
+    def __init__(self, required_args):
+        msg = 'missing required args error:\n' + '\n'.join(sorted(required_args))
+        super(MissingRequiredArgsError, self).__init__(msg)
 
 class PeerReviewDate(Action):
     def __call__(self, parser, ns, value, option_string=None):
-        review = _to_iso_8601(value)
-        setattr(ns, parser.dest, review)
+        utcnow = datetime.utcnow()
+        review = ISO_8601_to_datetime(value)
+        if review > utcnow:
+            raise FuturePeerReviewError(value, datetime_to_ISO_8601(utcnow))
+        setattr(ns, self.dest, datetime_to_ISO_8601(review))
 
 class PlannedStart(Action):
     def __call__(self, parser, ns, value, option_string=None):
@@ -72,23 +88,22 @@ class PlannedStart(Action):
             stop = utcnow
         elif value.startswith('+'):
             td = friendly.timedelta(value[1:])
-            dbg(td)
             stop = utcnow + td
         else:
-            stop = _to_iso_8601(value)
+            stop = ISO_8601_to_datetime(value)
             if stop < utcnow:
                 raise PlannedStartInPastError(value)
-        setattr(ns, self.dest, stop.strftime(ISO_8601))
+        setattr(ns, self.dest, datetime_to_ISO_8601(stop))
 
 class PlannedStop(Action):
     def __call__(self, parser, ns, value, option_string=None):
         if value.startswith('+'):
-            start = _to_iso_8601(ns.planned_start_date)
+            start = ISO_8601_to_datetime(ns.planned_start_date)
             td = friendly.timedelta(value[1:])
             stop = start + td
         else:
-            stop = _to_iso_8601(value)
-        setattr(ns, self.dest, stop.strftime(ISO_8601))
+            stop = ISO_8601_to_datetime(value)
+        setattr(ns, self.dest, datetime_to_ISO_8601(stop))
 
 class Required(object):
     __instance = None
@@ -99,13 +114,29 @@ class Required(object):
     def __repr__(self):
         return 'Required'
 
-class MissingRequiredArgsError(Exception):
-    def __init__(self, required_args):
-        msg = 'missing required args error:\n' + '\n'.join(sorted(required_args))
-        super(MissingRequiredArgsError, self).__init__(msg)
+def ISO_8601_to_datetime(string):
+    try:
+        return datetime.strptime(string, ISO_8601)
+    except:
+        raise DateParseError(string)
+
+def datetime_to_ISO_8601(dt):
+    try:
+        return dt.strftime(ISO_8601)
+    except:
+        raise DateParseError(str(dt))
 
 def validate(**kwargs):
-    return [arg for arg, value in kwargs.items() if value is required]
+    required_args = [arg for arg, value in kwargs.items() if value is required]
+    if required_args:
+        raise RequiredArgsMissingError(required_args)
+
+def do_request(ns):
+    validate(**ns.__dict__)
+    cr = ChangeRequest(**ns.__dict__)
+    call = cr.execute()
+    output_print(dict(call.recv.json), ns.output)
+    return call.recv.status
 
 FRIENDLY_TIMEDELTA = '''
 <friendly-timedelta>
@@ -133,7 +164,6 @@ def add_create(subparsers, *defaults):
         metavar='planned-stop',
         action=PlannedStop,
         help=fmt(DATETIME_OR_TIMEDELTA, anchor='planned-start', example='+2w3d8h OR 2056-10-30T7:58:13Z'))
-
 
     required_group = parser.add_argument_group(title='questionnaire required')
     required_group.add_argument(
@@ -236,22 +266,32 @@ def add_subparsers(parser):
 def main(args=None):
     parser = ArgumentParser(add_help=False)
 
-    parser.add_argument('--version',
+    parser.add_argument(
+        '--version',
         action='version',
         version='change-request ' + version)
-    parser.add_argument('--debug',
+    parser.add_argument(
+        '--debug',
         action='store_true',
         help='default="%(default)s"; toggle debug mode on')
-    parser.add_argument('--verbose',
+    parser.add_argument(
+        '--verbose',
         action='store_true',
         help='default="%(default)s"; toggle verbose mode on')
-    parser.add_argument('--config',
+    parser.add_argument(
+        '--config',
         metavar='FILEPATH',
         default=[
             fmt('~/.config/{PROJ}/{PROJ}.yml'),
             fmt('{CWD}/{PROJ}.yml'),
         ],
         help='default="%(default)s"; config filepath')
+    parser.add_argument(
+        '-O', '--output',
+        metavar='OUPUT',
+        default=default_output(),
+        choices=OUTPUT,
+        help='default="%(default)s"; set the output type; choices=[%(choices)s]')
 
     template_group = parser\
         .add_argument_group(title='template options')\
@@ -265,39 +305,36 @@ def main(args=None):
         metavar='NAME',
         help='name of template stored on server')
 
-    ns, rem = parser.parse_known_args(args)
+    try:
+        ns, rem = parser.parse_known_args(args)
 
-    config = load_config(*ns.config)
-    template = load_config(ns.template_file)
+        parser = ArgumentParser(
+            parents=[parser],
+            description=__doc__,
+            formatter_class=RawDescriptionHelpFormatter)
+        parser.add_argument(
+            '--change-request-url',
+            metavar='URL',
+            help='default="%(default)s"; the REST api endpoint url')
 
-    parser = ArgumentParser(
-        parents=[parser],
-        description=__doc__,
-        formatter_class=RawDescriptionHelpFormatter)
-    parser.add_argument(
-        '--change-request-url',
-        metavar='URL',
-        help='default="%(default)s"; the REST api endpoint url')
+        config = load_config(*ns.config)
+        template = load_config(ns.template_file)
 
-    parser.set_defaults(**config)
+        parser.set_defaults(**config)
 
-    subparsers = add_subparsers(parser)
-    add_create(subparsers, template, ns.__dict__) #FIXME: it seems like we
-    add_show(subparsers, template, ns.__dict__) # shouldn't have to pass ns here
+        subparsers = add_subparsers(parser)
+        add_create(subparsers, template, ns.__dict__) #FIXME: it seems like we
+        add_show(subparsers, template, ns.__dict__) # shouldn't have to pass ns here
 
-    ns = parser.parse_args(rem)
+        ns = parser.parse_args(rem)
+        status = do_request(ns)
+        if status not in HTTP_SUCCESS:
+           return status
+        return 0
 
-    required_args = validate(**ns.__dict__)
-    if required_args:
-        print('required args missing:\n  ' + '\n  '.join(required_args))
+    except ChangeRequestError as cre:
+        output_print(dict(errors=[str(cre)]), ns.output)
         return 1
-
-    if ns.debug:
-        print_json(ns.__dict__)
-        return 1
-    else:
-        cr = ChangeRequest()
-        return cr.execute(**ns.__dict__)
 
 if __name__ == '__main__':
     sys.exit(main())
