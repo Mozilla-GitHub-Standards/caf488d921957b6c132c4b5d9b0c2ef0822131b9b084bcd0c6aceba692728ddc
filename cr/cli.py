@@ -50,7 +50,7 @@ class RequiredArgsMissingError(ChangeRequestError):
 
 class DateParseError(ChangeRequestError):
     def __init__(self, string):
-        msg = fmt('the string={string} could not be converted to ISO 8601')
+        msg = fmt('the string={string} could not be converted to ISO_8601')
         super(DateParseError, self).__init__(msg)
 
 class FuturePeerReviewError(ChangeRequestError):
@@ -146,7 +146,7 @@ ex. 1w2h30m represents a timedelta of 1 week, 2 hours and 30 minutes
 '''
 DATETIME_OR_TIMEDELTA = '''
 prefix + to friendly-timedelta for date equivalent to {anchor} +timedelta
-OR enter future datetime (ISO 8601 format); ex {example}
+OR enter future datetime (ISO_8601 format); ex {example}
 '''
 def add_create(subparsers, *defaults):
     parser = subparsers.add_parser(
@@ -167,6 +167,11 @@ def add_create(subparsers, *defaults):
 
     required_group = parser.add_argument_group(title='questionnaire required')
     required_group.add_argument(
+        '-E', '--email',
+        metavar='EMAIL',
+        default=required,
+        help='mozilla email of the owner of the change request')
+    required_group.add_argument(
         '-C', '--change-plan',
         metavar='PLAN',
         default=required,
@@ -181,33 +186,33 @@ def add_create(subparsers, *defaults):
         metavar='IMPACT',
         default=required,
         choices=BUSINESS_IMPACT,
-        help='default="%(default)s"; choose the business impact from [%(choices)s]')
+        help='choose the business impact from [%(choices)s]')
     required_group.add_argument(
         '-I', '--change-impact',
         metavar='IMPACT',
         default=required,
         choices=CHANGE_IMPACT,
-        help='default="%(default)s"; choose the impact from [%(choices)s]')
-
-    optional_group = parser.add_argument_group(title='questionnaire optional')
-    optional_group.add_argument(
+        help='choose the impact from [%(choices)s]')
+    required_group.add_argument(
         '-u', '--user-impact',
         metavar='IMPACT',
-        default=USER_IMPACT[0],
+        default=required,
         choices=USER_IMPACT,
-        help='default="%(default)s"; choose the user-impact from [%(choices)s]')
-    optional_group.add_argument(
-        '-s', '--security-risk-level',
+        help='choose the user-impact from [%(choices)s]')
+    required_group.add_argument(
+        '-s', '--security-risk',
         metavar='LEVEL',
-        default=SECURITY_RISK_LEVEL[0],
-        choices=SECURITY_RISK_LEVEL,
-        help='default="%(default)s"; choose the security risk level from [%(choices)s]')
-    optional_group.add_argument(
+        default=required,
+        choices=SECURITY_RISK,
+        help='choose the security risk level from [%(choices)s]')
+    required_group.add_argument(
         '-f', '--change-frequency',
         metavar='FREQ',
-        default=CHANGE_FREQUENCY[0],
+        default=required,
         choices=CHANGE_FREQUENCY,
-        help='default="%(default)s"; choose the change frequency from [%(choices)s]')
+        help='choose the change frequency from [%(choices)s]')
+
+    optional_group = parser.add_argument_group(title='questionnaire optional')
     optional_group.add_argument(
         '-t', '--test-plan',
         metavar='PLAN',
@@ -228,7 +233,7 @@ def add_create(subparsers, *defaults):
         '-R', '--peer-review-date',
         metavar='DATE',
         action=PeerReviewDate,
-        help='enter peer-review date (ISO 8601), if applicable')
+        help='enter peer-review date (ISO_8601), if applicable')
     optional_group.add_argument(
         '-v', '--vendor-name',
         metavar='NAME',

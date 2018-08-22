@@ -10,7 +10,7 @@ USER_IMPACT = [
     '500+',
 ]
 
-SECURITY_RISK_LEVEL = [
+SECURITY_RISK = [
     'none/low',
     'medium',
     'high',
