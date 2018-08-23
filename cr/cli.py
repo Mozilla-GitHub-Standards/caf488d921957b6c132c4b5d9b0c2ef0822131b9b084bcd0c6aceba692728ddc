@@ -167,11 +167,6 @@ def add_create(subparsers, *defaults):
 
     required_group = parser.add_argument_group(title='questionnaire required')
     required_group.add_argument(
-        '-E', '--email',
-        metavar='EMAIL',
-        default=required,
-        help='mozilla email of the owner of the change request')
-    required_group.add_argument(
         '-C', '--change-plan',
         metavar='PLAN',
         default=required,
