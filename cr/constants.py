@@ -11,9 +11,10 @@ USER_IMPACT = [
 ]
 
 SECURITY_RISK = [
-    'none/low',
+    'low',
     'medium',
     'high',
+    'maximum',
 ]
 
 CHANGE_FREQUENCY = [
