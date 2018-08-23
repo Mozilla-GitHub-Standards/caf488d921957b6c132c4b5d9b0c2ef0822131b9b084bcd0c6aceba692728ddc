@@ -31,7 +31,7 @@ from cr.utils.fmt import *
 from cr.utils import friendly
 from cr.utils.json import json_print
 from cr.utils.version import version
-from cr.utils.docstr import docstr
+from cr.utils.function import docstr
 from cr.utils.config import load_config
 from cr.utils.git import reporoot
 from cr.utils.output import OUTPUT, default_output, output_print
